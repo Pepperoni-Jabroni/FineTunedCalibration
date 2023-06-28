@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "fine_tuned_calibration",
+  "version": "${version}",
+
+  "name": "Fine Tuned Calibration",
+  "description": "Expands Calibrated Sculk Sensors output from 15 frequencies to 80+ frequencies",
+  "icon": "assets/fine_tuned_calibration/icon.png",
+  "authors": [
+    "Pepperoni__Jabroni__"
+  ],
+  "contact": {
+    "homepage": "https://www.curseforge.com/minecraft/mc-mods/fine_tuned_calibration",
+    "sources": "https://github.com/Pepperoni-Jabroni/FineTunedCalibration",
+    "issues": "https://github.com/Pepperoni-Jabroni/FineTunedCalibration/issues"
+  },
+
+  "license": "MIT",
+
+  "environment": "*",
+  "mixins": ["fine_tuned_calibration.mixins.json"],
+
+  "depends": {
+    "fabricloader": ">=0.14.21",
+    "fabric": "*",
+    "minecraft": "~1.20",
+    "java": ">=17"
+  }
+}
