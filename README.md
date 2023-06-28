@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://github.com/Pepperoni-Jabroni/FineTunedCalibration/assets/17690401/fedd246b-7854-4d25-a547-11133ca98f9a">
   </br></br>
-  Expands Calibrated Sculk Sensors output from 15 frequencies to 80+ frequencies
+  Expands Calibrated Sculk Sensors output from 15 frequencies to 100+ frequencies
   </br></br>
   <a href="https://www.curseforge.com/minecraft/mc-mods/fabric-api"><img src="https://i.imgur.com/Ol1Tcf8.png" width="149" height="50" title="Fabric API" alt="Fabric API"></a>
   </br></br>
