@@ -8,7 +8,6 @@ import net.minecraft.block.entity.LecternBlockEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -244,7 +243,7 @@ class BlockFrequencyResolver extends FrequencyResolver {
             int power,
             int frequency
     ) {
-        Optional<Block> block = this.getBlockIfMatches(world, positionSource, positionBlockSource);
+        Optional<BlockState> block = this.getBlockStateIfMatches(world, positionSource, positionBlockSource);
         Optional<BlockEntity> blockEntity = this.getBlockEntityIfMatches(world, positionSource, positionBlockSource);
         if (block.isPresent()) {
             if (this.targetBlockEntity == null) {
@@ -257,14 +256,14 @@ class BlockFrequencyResolver extends FrequencyResolver {
         return Optional.empty();
     }
 
-    Optional<Block> getBlockIfMatches(
+    Optional<BlockState> getBlockStateIfMatches(
             World world,
             PositionSource positionSource,
             BlockPos positionBlockSource
     ) {
         if (positionSource.getPos(world).isPresent()) {
-            Block b = world.getBlockState(positionBlockSource).getBlock();
-            if (b.getClass() == this.targetBlock) {
+            BlockState b = world.getBlockState(positionBlockSource);
+            if (b.getBlock().getClass() == this.targetBlock) {
                 return Optional.of(b);
             }
         }
@@ -304,12 +303,38 @@ class ChiseledBookshelfFrequencyResolver extends BlockFrequencyResolver {
             int power,
             int frequency
     ) {
-        Optional<Block> block = this.getBlockIfMatches(world, positionSource, positionBlockSource);
+        Optional<BlockState> block = this.getBlockStateIfMatches(world, positionSource, positionBlockSource);
         Optional<BlockEntity> blockEntity = this.getBlockEntityIfMatches(world, positionSource, positionBlockSource);
         if (block.isPresent() && blockEntity.isPresent() && blockEntity.get() instanceof ChiseledBookshelfBlockEntity) {
             return Optional.of(((ChiseledBookshelfBlockEntity) blockEntity.get()).getLastInteractedSlot());
         }
         return Optional.empty();
+    }
+}
+
+class NoteBlockFrequencyResolver extends BlockFrequencyResolver {
+
+    // Note Block use count range: 0-24, we will do half
+    static int NOTE_BLOCK_SIZE = 13;
+
+    public NoteBlockFrequencyResolver() {
+        super(GameEvent.NOTE_BLOCK_PLAY, NOTE_BLOCK_SIZE, NoteBlock.class, null);
+    }
+
+    @Override
+    Optional<Integer> getNewFrequencyForDetection(
+            PositionSource positionSource,
+            BlockPos positionBlockSource,
+            SculkSensorBlock sculkSensorBlock,
+            @Nullable Entity sourceEntity,
+            World world,
+            BlockPos sculkBlockPos,
+            BlockState sculkState,
+            int power,
+            int frequency
+    ) {
+        Optional<BlockState> blockState = this.getBlockStateIfMatches(world, positionSource, positionBlockSource);
+        return blockState.map(state -> state.get(NoteBlock.NOTE) / 2);
     }
 }
 
@@ -349,9 +374,9 @@ class JukeboxFrequencyResolver extends BlockFrequencyResolver {
             int power,
             int frequency
     ) {
-        Optional<Block> block = this.getBlockIfMatches(world, positionSource, positionBlockSource);
+        Optional<BlockState> blockstate = this.getBlockStateIfMatches(world, positionSource, positionBlockSource);
         Optional<BlockEntity> blockEntity = this.getBlockEntityIfMatches(world, positionSource, positionBlockSource);
-        if (block.isPresent() && blockEntity.isPresent()) {
+        if (blockstate.isPresent() && blockEntity.isPresent()) {
             Identifier record = Registries.ITEM.getId(((JukeboxBlockEntity) blockEntity.get()).getStack().getItem());
             int discFreq = RECORDS.stream().map(i -> Registries.ITEM.getId(i).toString())
                     .toList().indexOf(record.toString());
@@ -407,6 +432,7 @@ abstract class FrequencyResolver {
 
     public List<GameEvent> gameEvents;
     public int range;
+    public boolean isConcurrent = false;
 
     public FrequencyResolver(List<GameEvent> events, int range) {
         this.gameEvents = events;
@@ -434,6 +460,15 @@ abstract class FrequencyResolver {
         return entity instanceof ServerPlayerEntity ?
                 Optional.of((ServerPlayerEntity) entity) : Optional.empty();
     }
+
+    /**
+     * This will disable incremental of frequency offset for this resolver.
+     * NOTE: Concurrent Resolvers must always be the first elements of the list
+     */
+    public FrequencyResolver withConcurrency() {
+        this.isConcurrent = true;
+        return this;
+    }
 }
 
 /**
@@ -446,7 +481,7 @@ public class FrequencyEvaluator {
     /**
      * Map of Frequency values (1-15, but 0 indexed) to the frequency resolvers for that Sculk input Frequency
      */
-    static List<List<FrequencyResolver>> RESOLVERS = new ArrayList<>(){{
+    private static final List<List<FrequencyResolver>> RESOLVERS = new ArrayList<>(){{
         add(List.of(
                 new StepFrequencyResolver(),
                 new PlayerDependentFrequencyResolver(GameEvent.SWIM),
@@ -498,15 +533,15 @@ public class FrequencyEvaluator {
                 new ConstantFrequencyResolver(GameEvent.BLOCK_DETACH)
         ));
         add(List.of(
+                (new NoteBlockFrequencyResolver()).withConcurrency(),
                 new ConstantFrequencyResolver(GameEvent.CONTAINER_OPEN),
                 new ConstantFrequencyResolver(GameEvent.BLOCK_OPEN),
                 new ConstantFrequencyResolver(GameEvent.BLOCK_ACTIVATE),
                 new ConstantFrequencyResolver(GameEvent.BLOCK_ATTACH),
-                new ConstantFrequencyResolver(GameEvent.PRIME_FUSE),
-                new ConstantFrequencyResolver(GameEvent.NOTE_BLOCK_PLAY)
+                new ConstantFrequencyResolver(GameEvent.PRIME_FUSE)
         ));
         add(List.of(
-                new JukeboxFrequencyResolver(),
+                (new JukeboxFrequencyResolver()).withConcurrency(),
                 new ChiseledBookshelfFrequencyResolver(),
                 new BlockFrequencyResolver(
                         GameEvent.BLOCK_CHANGE, 1, LecternBlock.class, LecternBlockEntity.class),
@@ -559,9 +594,21 @@ public class FrequencyEvaluator {
                 // 1 is lowest redstone output
                 return result.get() + 1 + frequencyOffset;
             }
-            frequencyOffset = (frequencyOffset + resolver.range) % 15;
+            if (!resolver.isConcurrent) {
+                frequencyOffset = (frequencyOffset + resolver.range) % 15;
+            }
         }
         // Fall-through behavior defaults to full signal strength
         return 15;
+    }
+
+    public static int getFrequencyTotalRange(){
+        int freqCount = 0;
+        for (var resolverChunk : RESOLVERS) {
+            for (var resolver : resolverChunk) {
+                freqCount += resolver.range;
+            }
+        }
+        return freqCount;
     }
 }
