@@ -24,7 +24,7 @@ Changelogs are available [at the GitHub Releases section](https://github.com/Pep
    
 ## 📸 Media
 ![https://i.imgur.com/BMw3ZTB.png](https://i.imgur.com/BMw3ZTB.png)
-This is the Music Disc Blocks being detected as Frequency 3 for a Calibrated Sculk Sensor set to Page 11 in a Lectern (see Table below).
+This is the Music Disc Blocks being detected as Frequency 3 for a Calibrated Sculk Sensor set to Page 11 in a Lectern (see Table below). Under vanilla mechanics, all Music Discs have the same Frequency - 11.
 
 [Demo](https://i.imgur.com/i15SfSr.mp4) of Comparator output Calibrated to Freq 1, which includes player armor frequencies (1 - no boots, 2 - leather boots, ...).
 
