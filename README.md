@@ -9,7 +9,7 @@
 </p>
 
 ## 📖 About
-This mod gives extra functionality to Calibrated Sculk Sensors which allow them to output a variable Redstone signal based on Vibrational differences *within* the same Frequency, meaning you can make your Sculk contraptions *even more specifc*! This mod increases the number of unique Frequencies that result from a Calibrated Sculk Sensor + Comparator **from 15 Frequencies to 100+ Frequencies**! Some things you can detect with this mod:
+This mod gives extra functionality to Calibrated Sculk Sensors which allow them to output a variable Redstone signal based on Vibrational differences *within* the same Frequency, meaning you can make your Sculk contraptions *even more specifc*! This mod increases the number of Frequencies that result from a Calibrated Sculk Sensor + Comparator **from 15 Frequencies to 100+ Frequencies**! Some things you can detect with this mod:
 - Which Goat Horn type was blown ("Ponder", "Sing", ...)?
 - Which Music Disc was played in a Jukebox ("Block", "13", ...)?
 - Which slot of a Chiseled Bookshelf was interacted with (1-6)?
