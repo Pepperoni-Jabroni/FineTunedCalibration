@@ -211,7 +211,7 @@ class StackInHandFrequencyResolver extends FrequencyResolver {
         var itemInHand = optionalPlayer
                 .map(serverPlayerEntity -> serverPlayerEntity.getStackInHand(Hand.MAIN_HAND).getItem())
                 .orElse(null);
-        if (targetHandStacks.contains(itemInHand)) {
+        if (itemInHand != null && targetHandStacks.contains(itemInHand)) {
             return Optional.of(targetHandStacks.indexOf(itemInHand));
         }
         return Optional.empty();
