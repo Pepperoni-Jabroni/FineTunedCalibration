@@ -21,9 +21,9 @@
   "mixins": ["fine_tuned_calibration.mixins.json"],
 
   "depends": {
-    "fabricloader": ">=0.14.21",
+    "fabricloader": ">=0.15.9",
     "fabric": "*",
-    "minecraft": "~1.20",
+    "minecraft": ["1.20.4", "1.20.5"],
     "java": ">=17"
   }
 }

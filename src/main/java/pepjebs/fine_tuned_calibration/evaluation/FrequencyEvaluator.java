@@ -506,8 +506,9 @@ public class FrequencyEvaluator {
                 ))
         ));
         add(List.of(
-                new ConstantFrequencyResolver(GameEvent.ENTITY_ROAR),
-                new ConstantFrequencyResolver(GameEvent.ENTITY_SHAKE),
+                new ConstantFrequencyResolver(GameEvent.ENTITY_ACTION),
+                new ConstantFrequencyResolver(GameEvent.ELYTRA_GLIDE),
+                new ConstantFrequencyResolver(GameEvent.UNEQUIP),
                 new ConstantFrequencyResolver(GameEvent.ELYTRA_GLIDE)
         ));
         add(List.of(
