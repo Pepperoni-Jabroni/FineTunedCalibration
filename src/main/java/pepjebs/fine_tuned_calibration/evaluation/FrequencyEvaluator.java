@@ -5,11 +5,15 @@ import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.ChiseledBookshelfBlockEntity;
 import net.minecraft.block.entity.JukeboxBlockEntity;
 import net.minecraft.block.entity.LecternBlockEntity;
+import net.minecraft.component.ComponentType;
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
@@ -24,7 +28,7 @@ import java.util.stream.Collectors;
 
 class ConstantFrequencyResolver extends FrequencyResolver {
 
-    public ConstantFrequencyResolver(GameEvent event) {
+    public ConstantFrequencyResolver(RegistryEntry.Reference<GameEvent> event) {
         super(event, 1);
     }
 
@@ -45,7 +49,7 @@ class ConstantFrequencyResolver extends FrequencyResolver {
 
 class PlayerDependentFrequencyResolver extends FrequencyResolver {
 
-    public PlayerDependentFrequencyResolver(GameEvent event) {
+    public PlayerDependentFrequencyResolver(RegistryEntry.Reference<GameEvent> event) {
         super(event, 2);
     }
 
@@ -69,12 +73,13 @@ class PlayerDependentFrequencyResolver extends FrequencyResolver {
 class StepFrequencyResolver extends FrequencyResolver {
 
     static List<String> TIERS = List.of(
-            "leather",
-            "golden",
-            "chainmail",
-            "iron",
-            "diamond",
-            "netherite"
+            Items.LEATHER_BOOTS.getTranslationKey(),
+            Items.COPPER_BOOTS.getTranslationKey(),
+            Items.GOLDEN_BOOTS.getTranslationKey(),
+            Items.CHAINMAIL_BOOTS.getTranslationKey(),
+            Items.IRON_BOOTS.getTranslationKey(),
+            Items.DIAMOND_BOOTS.getTranslationKey(),
+            Items.NETHERITE_BOOTS.getTranslationKey()
     );
 
     public StepFrequencyResolver() {
@@ -96,14 +101,11 @@ class StepFrequencyResolver extends FrequencyResolver {
         if (optionalPlayer.isEmpty()) {
             return Optional.of(7);
         }
-        var armorIter = optionalPlayer.get().getArmorItems().iterator();
+        var feetStack = optionalPlayer.get().getEquippedStack(EquipmentSlot.FEET);
+        var armorStr = feetStack.getItem().getTranslationKey();
         var bootFreq = 0;
-        while (armorIter.hasNext()) {
-            var armor = armorIter.next();
-            var armorStr = Registries.ITEM.getId(armor.getItem()).toString();
-            if (armorStr.contains("boots") && TIERS.stream().anyMatch(armorStr::contains)) {
-                bootFreq = TIERS.indexOf(TIERS.stream().filter(armorStr::contains).findFirst().get()) + 1;
-            }
+        if (TIERS.stream().anyMatch(armorStr::contains)) {
+            bootFreq = TIERS.indexOf(armorStr) + 1;
         }
         return Optional.of(bootFreq);
     }
@@ -135,10 +137,10 @@ class EntityDamageFrequencyResolver extends FrequencyResolver {
 class NBTStringFrequencyResolver extends FrequencyResolver {
 
     Item targetItem;
-    String nbtKey;
+    ComponentType<?> nbtKey;
     List<String> nbtStringValues;
 
-    public NBTStringFrequencyResolver(GameEvent event, Item item, String key, List<String> values) {
+    public NBTStringFrequencyResolver(RegistryEntry.Reference<GameEvent> event, Item item, ComponentType<?> key, List<String> values) {
         super(event, values.size());
         this.nbtKey = key;
         this.nbtStringValues = values;
@@ -159,9 +161,9 @@ class NBTStringFrequencyResolver extends FrequencyResolver {
         var optionalPlayer = FrequencyResolver.getServerPlayerFromEntity(sourceEntity);
         if (optionalPlayer.isPresent()
                 && optionalPlayer.get().getStackInHand(Hand.MAIN_HAND).getItem() == this.targetItem) {
-            var nbt = optionalPlayer.get().getStackInHand(Hand.MAIN_HAND).getNbt();
-            if (nbt != null && nbt.contains(this.nbtKey)) {
-                return Optional.of(this.nbtStringValues.indexOf(nbt.getString(this.nbtKey)));
+            var components = optionalPlayer.get().getStackInHand(Hand.MAIN_HAND).getComponents();
+            if (components.contains(this.nbtKey)) {
+                return Optional.of(this.nbtStringValues.indexOf((String) components.get(this.nbtKey)));
             }
         }
         return Optional.empty();
@@ -182,7 +184,7 @@ class GoatHornFrequencyResolver extends NBTStringFrequencyResolver {
     );
 
     public GoatHornFrequencyResolver() {
-        super(GameEvent.INSTRUMENT_PLAY, Items.GOAT_HORN, "instrument", HORNS);
+        super(GameEvent.INSTRUMENT_PLAY, Items.GOAT_HORN, DataComponentTypes.INSTRUMENT, HORNS);
     }
 }
 
@@ -190,7 +192,7 @@ class StackInHandFrequencyResolver extends FrequencyResolver {
 
     List<Item> targetHandStacks;
 
-    public StackInHandFrequencyResolver(GameEvent event, List<Item> targetHandStacks) {
+    public StackInHandFrequencyResolver(RegistryEntry.Reference<GameEvent> event, List<Item> targetHandStacks) {
         super(event, targetHandStacks.size());
         this.targetHandStacks = targetHandStacks;
     }
@@ -223,9 +225,9 @@ class BlockFrequencyResolver extends FrequencyResolver {
     Class<? extends Block> targetBlock;
     Class<? extends BlockEntity> targetBlockEntity;
 
-    public BlockFrequencyResolver(GameEvent event, int range,
-                                        Class<? extends Block> targetBlock,
-                                        Class<? extends BlockEntity> targetBlockEntity) {
+    public BlockFrequencyResolver(RegistryEntry.Reference<GameEvent> event, int range,
+                                  Class<? extends Block> targetBlock,
+                                  Class<? extends BlockEntity> targetBlockEntity) {
         super(event, range);
         this.targetBlock = targetBlock;
         this.targetBlockEntity = targetBlockEntity;
@@ -314,8 +316,8 @@ class ChiseledBookshelfFrequencyResolver extends BlockFrequencyResolver {
 
 class NoteBlockFrequencyResolver extends BlockFrequencyResolver {
 
-    // Note Block use count range: 0-24, we will do half
-    static int NOTE_BLOCK_SIZE = 13;
+    // Note Block use count range: 0-24
+    static int NOTE_BLOCK_SIZE = 15;
 
     public NoteBlockFrequencyResolver() {
         super(GameEvent.NOTE_BLOCK_PLAY, NOTE_BLOCK_SIZE, NoteBlock.class, null);
@@ -334,7 +336,7 @@ class NoteBlockFrequencyResolver extends BlockFrequencyResolver {
             int frequency
     ) {
         Optional<BlockState> blockState = this.getBlockStateIfMatches(world, positionSource, positionBlockSource);
-        return blockState.map(state -> state.get(NoteBlock.NOTE) / 2);
+        return blockState.map(state -> (int)Math.floor(state.get(NoteBlock.NOTE) / 1.7));
     }
 }
 
@@ -439,8 +441,8 @@ abstract class FrequencyResolver {
         this.range = range;
     }
 
-    public FrequencyResolver(GameEvent event, int range) {
-        this.gameEvents = List.of(event);
+    public FrequencyResolver(RegistryEntry.Reference<GameEvent> event, int range) {
+        this.gameEvents = List.of(event.value());
         this.range = range;
     }
 
@@ -481,7 +483,7 @@ public class FrequencyEvaluator {
     /**
      * Map of Frequency values (1-15, but 0 indexed) to the frequency resolvers for that Sculk input Frequency
      */
-    private static final List<List<FrequencyResolver>> RESOLVERS = new ArrayList<>(){{
+    private static final List<List<FrequencyResolver>> RESOLVERS = new ArrayList<>() {{
         add(List.of(
                 new StepFrequencyResolver(),
                 new PlayerDependentFrequencyResolver(GameEvent.SWIM),
@@ -603,13 +605,13 @@ public class FrequencyEvaluator {
         return 15;
     }
 
-    public static int getFrequencyTotalRange(){
-        int freqCount = 0;
-        for (var resolverChunk : RESOLVERS) {
-            for (var resolver : resolverChunk) {
-                freqCount += resolver.range;
-            }
-        }
-        return freqCount;
-    }
+//    public static int getFrequencyTotalRange(){
+//        int freqCount = 0;
+//        for (var resolverChunk : RESOLVERS) {
+//            for (var resolver : resolverChunk) {
+//                freqCount += resolver.range;
+//            }
+//        }
+//        return freqCount;
+//    }
 }

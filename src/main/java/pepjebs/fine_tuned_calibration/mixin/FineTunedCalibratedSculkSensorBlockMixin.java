@@ -5,6 +5,7 @@ import net.minecraft.block.CalibratedSculkSensorBlock;
 import net.minecraft.block.SculkSensorBlock;
 import net.minecraft.block.entity.*;
 import net.minecraft.entity.Entity;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.*;
 import net.minecraft.world.World;
@@ -30,10 +31,15 @@ public class FineTunedCalibratedSculkSensorBlockMixin {
 
     @Inject(method = "accept", at = @At("HEAD"))
     public void storeFineTuneData(
-            ServerWorld world, BlockPos pos, GameEvent event, @Nullable Entity sourceEntity, @Nullable Entity entity, float distance,
+            ServerWorld world,
+            BlockPos pos,
+            RegistryEntry<GameEvent> event,
+            @Nullable Entity sourceEntity,
+            @Nullable Entity entity,
+            float distance,
             CallbackInfo ci
     ) {
-        this.triggerEvent = event;
+        this.triggerEvent = event.value();
         this.acceptPos = pos;
     }
 
@@ -42,7 +48,13 @@ public class FineTunedCalibratedSculkSensorBlockMixin {
             at = @At(value = "INVOKE", target = "Lnet/minecraft/block/SculkSensorBlock;setActive(Lnet/minecraft/entity/Entity;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;II)V")
     )
     public void injectFineTunedCalibration(
-            SculkSensorBlock sculkSensorBlock, @Nullable Entity sourceEntity, World world, BlockPos sculkBlockPos, BlockState sculkState, int power, int frequency
+            SculkSensorBlock sculkSensorBlock,
+            @Nullable Entity sourceEntity,
+            World world,
+            BlockPos sculkBlockPos,
+            BlockState sculkState,
+            int power,
+            int frequency
     ) {
         if (!(sculkSensorBlock instanceof CalibratedSculkSensorBlock)) {
             sculkSensorBlock.setActive(sourceEntity, world, sculkBlockPos, sculkState, power, frequency);
